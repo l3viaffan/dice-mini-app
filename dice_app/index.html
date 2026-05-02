@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>D20 Dice</title>
+    <style>
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: system-ui, -apple-system, 'Cinzel', serif;
+            touch-action: manipulation;
+        }
+        .container {
+            text-align: center;
+            padding: 20px;
+        }
+        .dice {
+            width: 200px;
+            height: 200px;
+            background: #2c1e16;
+            border-radius: 20px;
+            margin: 0 auto 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.1);
+            border: 2px solid #d4af5a;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .dice:active { transform: scale(0.98); }
+        .dice span {
+            font-size: 80px;
+            font-weight: bold;
+            color: #f3d38b;
+            text-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+        button {
+            background: #d4af5a;
+            border: none;
+            padding: 14px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 50px;
+            color: #1a1a2e;
+            cursor: pointer;
+            box-shadow: 0 5px 0 #8b6912;
+            transition: 0.07s linear;
+            font-family: inherit;
+        }
+        button:active {
+            transform: translateY(2px);
+            box-shadow: 0 2px 0 #8b6912;
+        }
+        .result {
+            margin-top: 30px;
+            font-size: 24px;
+            color: #e8dec9;
+        }
+        @keyframes shake {
+            0% { transform: rotate(0deg); }
+            25% { transform: rotate(10deg); }
+            75% { transform: rotate(-10deg); }
+            100% { transform: rotate(0deg); }
+        }
+        .shake { animation: shake 0.3s ease-in-out; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="dice" id="dice">
+        <span id="diceValue">20</span>
+    </div>
+    <button id="rollBtn">🎲 КИНУТЬ</button>
+    <div class="result" id="result"></div>
+</div>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script>
+    const diceEl = document.getElementById('dice');
+    const diceValueSpan = document.getElementById('diceValue');
+    const rollBtn = document.getElementById('rollBtn');
+    const resultDiv = document.getElementById('result');
+    
+    let currentValue = 20;
+    let isRolling = false;
+    
+    function randomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+    
+    function rollDice() {
+        if (isRolling) return;
+        isRolling = true;
+        
+        // Анимация
+        diceEl.classList.add('shake');
+        
+        let rolls = 0;
+        const totalRolls = 15;
+        const interval = setInterval(() => {
+            const tempValue = randomInt(1, 20);
+            diceValueSpan.textContent = tempValue;
+            rolls++;
+            
+            if (rolls >= totalRolls) {
+                clearInterval(interval);
+                const finalValue = randomInt(1, 20);
+                diceValueSpan.textContent = finalValue;
+                currentValue = finalValue;
+                isRolling = false;
+                diceEl.classList.remove('shake');
+                resultDiv.textContent = `🎲 Выпало: ${finalValue}`;
+                
+                // Отправляем результат в Telegram бот
+                if (window.Telegram && Telegram.WebApp) {
+                    Telegram.WebApp.sendData(JSON.stringify({
+                        type: 'd20',
+                        value: finalValue
+                    }));
+                    Telegram.WebApp.close();
+                }
+            }
+        }, 50);
+    }
+    
+    rollBtn.addEventListener('click', rollDice);
+    diceEl.addEventListener('click', rollDice);
+    
+    // Инициализация Telegram Web App
+    if (window.Telegram && Telegram.WebApp) {
+        Telegram.WebApp.ready();
+        Telegram.WebApp.expand();
+        Telegram.WebApp.MainButton.setText("ГОТОВО");
+        Telegram.WebApp.MainButton.onClick(() => {
+            Telegram.WebApp.sendData(JSON.stringify({
+                type: 'd20',
+                value: currentValue
+            }));
+            Telegram.WebApp.close();
+        });
+    }
+    
+    // Показываем начальное значение
+    diceValueSpan.textContent = currentValue;
+</script>
+</body>
+</html>
